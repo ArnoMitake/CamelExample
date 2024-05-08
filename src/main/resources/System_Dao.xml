@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camel="http://camel.apache.org/schema/spring"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+	<bean id="dataSource_SMCDR" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close" scope="singleton" >
+		<property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+		<property name="jdbcUrl" value="jdbc:sqlserver://${db.smcdr.ip}:${db.smcdr.port};databaseName=${db.smcdr.dbname};applicationName=${app.global.name}|#{T(java.net.InetAddress).getLocalHost().getHostAddress()}|${db.smcdr.user};sendStringParametersAsUnicode=false;useBulkCopyForBatchInsert=true" />
+		<property name="autoCommit" value="true" />
+		<property name="connectionTimeout" value="5000" />
+		<property name="minimumIdle" value="${db.smcdr.minPoolSize}" />
+		<property name="maximumPoolSize" value="${db.smcdr.maxPoolSize}" />
+		<property name="idleTimeout" value="30000" />
+		<property name="maxLifetime" value="60000" />				
+		<property name="username" value="${db.smcdr.user}" />
+		<property name="password" value="${db.smcdr.num}" />
+		<property name="registerMbeans" value="true" />
+	</bean>
+	
+	<bean id="dataSource_NPDB" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close" scope="singleton" >
+		<property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+		<property name="jdbcUrl" value="jdbc:sqlserver://${db.npdb.ip}:${db.npdb.port};databaseName=${db.npdb.dbname};applicationName=${app.global.name}|#{T(java.net.InetAddress).getLocalHost().getHostAddress()}|${db.npdb.user};sendStringParametersAsUnicode=false;useBulkCopyForBatchInsert=true" />
+		<property name="autoCommit" value="true" />
+		<property name="connectionTimeout" value="5000" />
+		<property name="minimumIdle" value="${db.npdb.minPoolSize}" />
+		<property name="maximumPoolSize" value="${db.npdb.maxPoolSize}" />
+		<property name="idleTimeout" value="30000" />
+		<property name="maxLifetime" value="60000" />				
+		<property name="username" value="${db.npdb.user}" />
+		<property name="password" value="${db.npdb.num}" />
+		<property name="registerMbeans" value="true" />
+	</bean>
+
+	<bean id="dataSource_DBexp" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close" scope="singleton" >
+		<property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+		<property name="jdbcUrl" value="jdbc:sqlserver://${db.dbexp.ip}:${db.dbexp.port};databaseName=${db.dbexp.dbname};applicationName=${app.global.name}|#{T(java.net.InetAddress).getLocalHost().getHostAddress()}|${db.dbexp.user};sendStringParametersAsUnicode=false;useBulkCopyForBatchInsert=true" />
+		<property name="autoCommit" value="true" />
+		<property name="connectionTimeout" value="5000" />
+		<property name="minimumIdle" value="${db.dbexp.minPoolSize}" />
+		<property name="maximumPoolSize" value="${db.dbexp.maxPoolSize}" />
+		<property name="idleTimeout" value="30000" />
+		<property name="maxLifetime" value="60000" />
+		<property name="username" value="${db.dbexp.user}" />
+		<property name="password" value="${db.dbexp.num}" />
+		<property name="registerMbeans" value="true" />
+	</bean>
+
+	<bean id="dataSource_412_SMCDR" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close" scope="singleton" >
+		<property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+		<property name="jdbcUrl" value="jdbc:sqlserver://${db.412.smcdr.ip}:${db.412.smcdr.port};databaseName=${db.412.smcdr.dbname};applicationName=${app.global.name}|#{T(java.net.InetAddress).getLocalHost().getHostAddress()}|${db.412.smcdr.user};sendStringParametersAsUnicode=false;useBulkCopyForBatchInsert=true" />
+		<property name="autoCommit" value="true" />
+		<property name="connectionTimeout" value="5000" />
+		<property name="minimumIdle" value="${db.412.smcdr.minPoolSize}" />
+		<property name="maximumPoolSize" value="${db.412.smcdr.maxPoolSize}" />
+		<property name="idleTimeout" value="30000" />
+		<property name="maxLifetime" value="60000" />
+		<property name="username" value="${db.412.smcdr.user}" />
+		<property name="password" value="${db.412.smcdr.num}" />
+		<property name="registerMbeans" value="true" />
+	</bean>
+
+	<bean id="dataSource_412_DBexp" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close" scope="singleton" >
+		<property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+		<property name="jdbcUrl" value="jdbc:sqlserver://${db.412.dbexp.ip}:${db.412.dbexp.port};databaseName=${db.412.dbexp.dbname};applicationName=${app.global.name}|#{T(java.net.InetAddress).getLocalHost().getHostAddress()}|${db.412.dbexp.user};sendStringParametersAsUnicode=false;useBulkCopyForBatchInsert=true" />
+		<property name="autoCommit" value="true" />
+		<property name="connectionTimeout" value="5000" />
+		<property name="minimumIdle" value="${db.412.dbexp.minPoolSize}" />
+		<property name="maximumPoolSize" value="${db.412.dbexp.maxPoolSize}" />
+		<property name="idleTimeout" value="30000" />
+		<property name="maxLifetime" value="60000" />
+		<property name="username" value="${db.412.dbexp.user}" />
+		<property name="password" value="${db.412.dbexp.num}" />
+		<property name="registerMbeans" value="true" />
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="dataSource_SMCDR" />
+		<property name="targetMethod" value="setJdbcUrl" />
+		<property name="arguments" value="#{dataSource_SMCDR.jdbcUrl + ';workstationID='+ T(java.lang.management.ManagementFactory).getRuntimeMXBean().getName()}" />
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="dataSource_412_SMCDR" />
+		<property name="targetMethod" value="setJdbcUrl" />
+		<property name="arguments" value="#{dataSource_412_SMCDR.jdbcUrl + ';workstationID='+ T(java.lang.management.ManagementFactory).getRuntimeMXBean().getName()}" />
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="dataSource_DBexp" />
+		<property name="targetMethod" value="setJdbcUrl" />
+		<property name="arguments" value="#{dataSource_DBexp.jdbcUrl + ';workstationID='+ T(java.lang.management.ManagementFactory).getRuntimeMXBean().getName()}" />
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="dataSource_NPDB" />
+		<property name="targetMethod" value="setJdbcUrl" />
+		<property name="arguments" value="#{dataSource_NPDB.jdbcUrl + ';workstationID='+ T(java.lang.management.ManagementFactory).getRuntimeMXBean().getName()}" />
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="dataSource_412_DBexp" />
+		<property name="targetMethod" value="setJdbcUrl" />
+		<property name="arguments" value="#{dataSource_412_DBexp.jdbcUrl + ';workstationID='+ T(java.lang.management.ManagementFactory).getRuntimeMXBean().getName()}" />
+	</bean>
+
+</beans>

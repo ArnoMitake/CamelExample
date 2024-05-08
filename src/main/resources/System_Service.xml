@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camel="http://camel.apache.org/schema/spring"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+	
+	<import resource="System_Dao.xml" />
+
+	
+	<bean id="ExportSMCDRDao" class="com.mitake.camel.fetnp.dao.ExportSMCDRDao">
+		<constructor-arg index="0" ref="dataSource_SMCDR" />
+	</bean>
+
+	<bean id="ExportSMCDR412Dao" class="com.mitake.camel.fetnp.dao.ExportSMCDR412Dao">
+		<constructor-arg index="0" ref="dataSource_412_SMCDR" />
+	</bean>
+
+	<bean id="ExportSMCDRService" class="com.mitake.camel.fetnp.service.ExportSMCDRService">
+		<property name="exportSMCDRDao" ref="ExportSMCDRDao" />
+		<property name="exportSMCDR412Dao" ref="ExportSMCDR412Dao" />
+	</bean>
+	
+	<bean id="IODstNoDao" class="com.mitake.camel.fetnp.dao.IODstNoDao">
+		<constructor-arg index="0" ref="dataSource_NPDB" />
+	</bean>
+	
+	<bean id="IODstNoService" class="com.mitake.camel.fetnp.service.IODstNoService">
+		<property name="dao" ref="IODstNoDao" />
+	</bean>
+
+	<bean id="FetNpService" class="com.mitake.camel.fetnp.service.FetNpService">
+		<property name="dao" ref="FetNpDao" />
+	</bean>
+
+	<bean id="FetNpDao" class="com.mitake.camel.fetnp.dao.FetNpDao">
+		<constructor-arg index="0" ref="dataSource_DBexp" />
+	</bean>
+
+	<bean id="FetNp412Service" class="com.mitake.camel.fetnp.service.FetNp412Service">
+		<property name="dao" ref="FetNp412Dao" />
+	</bean>
+
+	<bean id="FetNp412Dao" class="com.mitake.camel.fetnp.dao.FetNp412Dao">
+		<constructor-arg index="0" ref="dataSource_412_DBexp" />
+	</bean>
+
+	<bean id="EmailNotifyService" class="com.mitake.camel.fetnp.service.EmailNotifyService">
+		<property name="subjectTitle" value="${mail.subject.title}" />
+		<property name="from" value="${mail.from}" />
+		<property name="to" value="${mail.to}" />
+		<property name="cc" value="${mail.cc}"  />
+	</bean>
+
+</beans>

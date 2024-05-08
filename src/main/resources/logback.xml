@@ -1,0 +1,93 @@
+<configuration>
+	<property file="${app.global.path:-.}\conf\AppSettings.properties" />
+	<property name="Process" value="${app.global.name:-FET_NP}" />
+	<property name="LogPath" value="${app.log.path:-.}" />
+	<property name="LogLevel" value="${app.log.level}" />
+
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<Encoding>UTF-8</Encoding>
+		<encoder>
+			<pattern>
+				%d{yyyy/MM/dd HH:mm:ss.SSS} %-5level %logger{5}:%M:%L - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="ConsoleLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LogPath}\${Process}\log\${Process}_ConsoleLog.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LogPath}\${Process}\log\${Process}_ConsoleLog.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+			<maxHistory>100</maxHistory>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>10MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+		</rollingPolicy>
+		<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+			<charset>UTF-8</charset>
+			<layout class="ch.qos.logback.classic.PatternLayout">
+				<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] %-5level %logger{0}[%M - %L] - %msg%n</pattern>
+			</layout>
+		</encoder>
+	</appender>
+
+	<appender name="CamelWorkLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LogPath}\${Process}\log\${Process}_CamelWorkLog.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LogPath}\${Process}\log\${Process}_CamelWorkLog.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+			<maxHistory>100</maxHistory>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>10MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+		</rollingPolicy>
+		<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+			<charset>UTF-8</charset>
+			<layout class="ch.qos.logback.classic.PatternLayout">
+				<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] [%X{camel.exchangeId}] %-5level %C{0}[%M:%L] - %msg%n</pattern>
+			</layout>
+		</encoder>
+	</appender>
+
+	<appender name="CamelErrorLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LogPath}\${Process}\log\${Process}_CamelErrorLog.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LogPath}\${Process}\log\${Process}_CamelErrorLog.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+			<maxHistory>100</maxHistory>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>10MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+		</rollingPolicy>
+		<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+			<charset>UTF-8</charset>
+			<layout class="ch.qos.logback.classic.PatternLayout">
+				<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] [%X{camel.exchangeId}] %-5level %C{0}[%M:%L] - %msg%n</pattern>
+			</layout>
+		</encoder>
+	</appender>
+
+	<!-- 寫到syslog的msg有限制最長僅512個字元 -->
+	<appender name="SYSLOG" class="ch.qos.logback.classic.net.SyslogAppender">
+		<filter class="com.mitake.camel.utils.logback.SysLogPatternFilter" />
+		<throwableExcluded>true</throwableExcluded>
+		<syslogHost>127.0.0.1</syslogHost>
+		<facility>LOCAL0</facility>
+		<suffixPattern>${Process}: %date [%thread] [%level] %logger{0} - [%M - %L] - %.-512msg%n</suffixPattern>
+		<charset>ms950</charset>
+	</appender>
+
+	<logger name="CAMEL_WORK_LOG" level="${LogLevel}" additivity="false">
+		<appender-ref ref="CamelWorkLog" />
+	</logger>
+
+	<logger name="CAMEL_ERROR_LOG" level="ERROR" additivity="false">
+		<appender-ref ref="CamelErrorLog" />
+	</logger>
+	
+	<root level="${LogLevel}">
+		<appender-ref ref="SYSLOG" />
+		<appender-ref ref="ConsoleLog" />
+		<!--
+		<appender-ref ref="STDOUT" />
+		 -->
+	</root>
+</configuration>

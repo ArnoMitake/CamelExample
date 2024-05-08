@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring-3.18.4.xsd">
+
+    <import resource="System_Camel_Object.xml"/>
+
+
+    <camelContext id="FETNP" useMDCLogging="true" threadNamePattern="Camel #name###counter#"
+                  xmlns="http://camel.apache.org/schema/spring">
+
+        <threadPoolProfile id="aggregatePool" poolSize="{{aggregate.Pool.minPoolSize}}"
+                           maxPoolSize="{{aggregate.Pool.maxPoolSize}}" maxQueueSize="-1" />
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled>
+                <constant>false</constant>
+            </handled>
+            <process ref="EmailNotifyProcessor" />
+            <to uri="smtp://{{mail.server}}?connectionTimeout=60000&amp;mail.smtp.starttls.enable={{mail.starttls.enable}}" />
+            <log message="FET_NP Fail \r\n錯誤訊息： ${exception.message}\r\n錯誤內容： ${exception.stacktrace}"
+                 loggingLevel="ERROR" logName="CAMEL_ERROR_LOG"/>
+        </onException>
+
+        <!-- 每天AM4:30查詢各業者SMCDR，並產txt檔至export -->
+        <route id="r1">
+            <from uri="quartz2:R1-ExportSMCDR?stateful=true&amp;cron={{export.cdr.destno.cron}}"/>
+            <bean ref="ExportSMCDRProcessor" method="exportSMCDRDestNoList"/>
+        </route>
+
+        <!-- 匯入export底下的SMCDR.txt  -->
+        <route id="r2" streamCache="false">
+            <from uri="file:{{export.file.dir}}?
+            			maxMessagesPerPoll=1&amp;
+            			readLock=rename&amp;
+            			readLockMinLength=0&amp;
+            			charset=UTF-8&amp;
+            			delay=10000&amp;
+            			delete=true&amp;
+                        moveFailed={{export.file.dir}}/error/$simple{date:now:yyyyMMdd}/$simple{file:name}"/>
+            <log message="SL-開始處理要匯入檔案 $simple{file:name}" loggingLevel="INFO"/>
+            <split streaming="true" parallelProcessing="false">
+                <tokenize token="\n"/>
+                <to uri="direct:aggregateDatas"/>
+            </split>
+            <log message="SL-結束處理要匯入檔案 $simple{file:name}" loggingLevel="INFO" />
+        </route>
+
+        <!-- 各業者SMCDR批次新增到CDRDeliveryDestNo_List -->
+        <route id="r3">
+            <from uri="direct:aggregateDatas"/>
+            <aggregate completionSize="500"
+                       completionInterval="5000"
+                       forceCompletionOnStop="true"
+                       parallelProcessing="true"
+                       executorService="aggregatePool"
+                       aggregationStrategy="#class:org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy">
+                <correlationExpression>
+                    <constant>true</constant>
+                </correlationExpression>
+                <bean ref="IODstNoProcessor" method="importProcess"/>
+                <setBody>
+                    <simple>${null}</simple>
+                </setBody>
+            </aggregate>
+        </route>
+
+        <!-- 每周一AM7:30匯出DstNos檔名為DstnoList_yyyyMMdd.txt丟到upload -->
+        <route id="r4">
+            <from uri="quartz2:R4-ExportCDRDelivery?
+                        stateful=true&amp;
+                        cron={{export.DstNos.cron}}"/>
+            <bean ref="IODstNoProcessor" method="outPutProcess"/>
+        </route>
+
+        <!-- 壓縮upload底下檔名DstnoList_yyyyMMdd.txt為zip檔 -->
+        <route id="r4_1" streamCache="false" >
+            <from uri="file://{{cdr.upload.file.dir}}?
+                        include=DstnoList_\d{8}\.txt&amp;
+                        maxMessagesPerPoll=1&amp;
+            			readLock=rename&amp;
+            			readLockMinLength=0&amp;
+            			delay=10000&amp;
+            			delete=true&amp;
+                        moveFailed={{cdr.upload.file.dir}}/error/$simple{date:now:yyyyMMdd}/$simple{file:name}"/>
+            <log message="SL-開始壓縮檔案 $simple{file:name}" loggingLevel="INFO"/>
+            <aggregate aggregationStrategy="#class:org.apache.camel.processor.aggregate.zipfile.ZipAggregationStrategy"
+                       parallelProcessing="true"
+                       completionFromBatchConsumer="true"
+                       eagerCheckCompletion="true">
+                <correlationExpression>
+                    <constant>true</constant>
+                </correlationExpression>
+                <to uri="file://{{cdr.upload.file.dir}}?
+                        fileName=DstnoList_$simple{date:now:yyyyMMdd}.zip" />
+            </aggregate>
+            <log message="SL-結束壓縮檔案 $simple{file:name}" loggingLevel="INFO"/>
+        </route>
+
+        <!-- 將upload的zip檔案上傳sftp -->
+        <route id="r5">
+            <from uri="file://{{cdr.upload.file.dir}}?
+                            readLock=rename&amp;
+                            readLockMinLength=0&amp;
+							delay=10m&amp;
+							include=DstnoList_\d{8}\.zip&amp;
+							move={{cdr.upload.file.dir}}/backup/$simple{date:now:yyyyMMdd}/$simple{file:name}&amp;
+                            moveFailed={{cdr.upload.file.dir}}/error/$simple{date:now:yyyyMMdd}/$simple{file:name}"/>
+            <log message="SL-檔案=$simple{file:name}上傳開始" loggingLevel="INFO"/>
+            <to uri="sftp://{{fet.sftp.ip}}:{{fet.sftp.port}}/{{fet.sftp.path}}?
+  						username={{fet.sftp.username}}&amp;
+  						password={{fet.sftp.password}}&amp;
+  						stepwise=false"/>
+            <log message="SL-檔案=$simple{file:name}上傳結束" loggingLevel="INFO"/>
+        </route>
+
+        <!-- 每5分鐘SFTP抓檔，檔名規則為ANSWER_yyyyMMdd-i.txt-->
+        <route id="r6">
+            <from uri="sftp://{{fet.sftp.ip}}:{{fet.sftp.port}}/{{fet.sftp.path}}?
+                        username={{fet.sftp.username}}&amp;
+  						password={{fet.sftp.password}}&amp;
+                        include=ANSWER_\d{8}-\d*\.txt&amp;
+  						stepwise=false&amp;
+                        download=true&amp;
+                        readLock=rename&amp;
+                        readLockMinLength=0&amp;
+                        delete=true&amp;
+                        scheduler=quartz&amp;
+                        scheduler.cron={{fet.sftp.download.job.cron}}&amp;
+                        localWorkDirectory={{fetnp.file.temp.dir}}&amp;
+                        streamDownload=true"/>
+            <log message="SL-遠傳NP資料下載，開始時間:$simple{date:now:yyyy-MM-dd hh:mm:ss.SSS}" loggingLevel="INFO"/>
+            <!-- 下載檔案 -->
+            <to uri="file://{{fetnp.file.download.dir}}"/>
+            <log message="SL-Downloaded file: $simple{file:name}" loggingLevel="INFO"/>
+            <log message="SL-遠傳NP資料下載，結束時間:$simple{date:now:yyyy-MM-dd hh:mm:ss.SSS}" loggingLevel="INFO"/>
+        </route>
+
+        <!-- 解析download檔案 -->
+        <route id="r7" streamCache="false">
+            <from uri="file://{{fetnp.file.download.dir}}?
+                        maxMessagesPerPoll=1&amp;
+                        readLock=rename&amp;
+                        readLockMinLength=0&amp;
+                        delay=1000&amp;
+                        move={{fetnp.file.download.dir}}/backup/$simple{date:now:yyyyMMdd}/$simple{file:name}&amp;
+                        moveFailed={{fetnp.file.download.dir}}/error/$simple{date:now:yyyyMMdd}/$simple{file:name}"/>
+            <log message="SL-解析檔案開始, 檔案=$simple{file:name}" loggingLevel="INFO"/>
+            <log message="SL-執行批次新增遠傳NP，開始時間:$simple{date:now:yyyy-MM-dd hh:mm:ss.SSS}" loggingLevel="INFO"/>
+            <split streaming="true" parallelProcessing="false">
+                <tokenize token="\r\n|\n"/>
+                <filter>
+                    <simple>${body} != null</simple>
+                    <to uri="direct:aggregateFETNPDatas"/>
+                </filter>
+            </split>
+            <log message="SL-執行批次新增遠傳NP，結束時間:$simple{date:now:yyyy-MM-dd hh:mm:ss.SSS}" loggingLevel="INFO"/>
+        </route>
+
+        <!-- 批次新增WaitToUpdateNP，業者代碼為88 -->
+        <route id="r8">
+            <from uri="direct:aggregateFETNPDatas"/>
+            <aggregate completionSize="500" completionInterval="5000"
+                       forceCompletionOnStop="true"
+                       parallelProcessing="true"
+                       executorService="aggregatePool"
+                       aggregationStrategy="#class:org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy">
+                <correlationExpression>
+                    <constant>true</constant>
+                </correlationExpression>
+            <!-- todo 下次更板可用 multicast 中華也有此邏輯可一起調整 -->
+                <multicast>
+                    <bean ref="FetNpProcessor" method="batchInsertReceiverListData"/>
+                    <bean ref="FetNp412Processor" method="batchInsert412ReceiverListData"/>
+                </multicast>
+            </aggregate>
+        </route>
+
+        <!-- 定期刪除過期的upload備份檔 -->
+        <route id="r9_1">
+            <from uri="quartz:R9_1DeleteBackup?stateful=true&amp;cron={{fetnp.file.upload.backup.delete.cron}}"/>
+            <log message="SL-刪除upload底下的backup檔案開始" loggingLevel="INFO"/>
+            <bean ref="DeleteUploadProcessor" method="process"/>
+            <log message="SL-刪除upload底下的backup檔案結束" loggingLevel="INFO"/>
+        </route>
+
+        <!-- 定期刪除過期的download備份檔 -->
+        <route id="r9_2">
+            <from uri="quartz:R9_2DeleteBackup?stateful=true&amp;cron={{fetnp.file.download.backup.delete.cron}}"/>
+            <log message="SL-刪除download底下的backup檔案開始" loggingLevel="INFO"/>
+            <bean ref="DeleteDownloadProcessor" method="process"/>
+            <log message="SL-刪除download底下的backup檔案結束" loggingLevel="INFO"/>
+        </route>
+
+
+    </camelContext>
+
+</beans>

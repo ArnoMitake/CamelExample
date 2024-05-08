@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camel="http://camel.apache.org/schema/spring"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+	<import resource="System_Service.xml" />
+
+	<context:property-placeholder location="file:${app.global.path:.}\conf\AppSettings.properties" file-encoding="UTF-8" />
+
+	<!-- properties -->
+	<bean id="bridgePropertyPlaceholder" class="org.apache.camel.spring.spi.BridgePropertyPlaceholderConfigurer">
+		<property name="location" value="file:${app.global.path:.}\conf\AppSettings.properties" />
+	</bean>
+	
+	<bean id="quartz2" class="org.apache.camel.component.quartz.QuartzComponent">
+	    <property name="properties">
+	      <props>
+	        <prop key="org.quartz.threadPool.threadCount">1</prop>
+	      </props>
+	    </property>
+	</bean>
+
+	<bean id="ExportSMCDRProcessor" class="com.mitake.camel.fetnp.processor.ExportSMCDRProcessor">
+		<property name="filePath" value="${export.file.dir}"/>
+		<property name="exportTelecomStr" value="${export.telecom.include}" />
+		<property name="service" ref="ExportSMCDRService" />
+	</bean>
+	
+	<bean id="IODstNoProcessor" class="com.mitake.camel.fetnp.processor.IODstNoProcessor">
+		<property name="service" ref="IODstNoService" />
+		<property name="filePath" value="${cdr.upload.file.dir}"/>
+	</bean>
+
+	<bean id="FetNpProcessor" class="com.mitake.camel.fetnp.processor.FetNpProcessor">
+		<property name="fetNpService" ref="FetNpService" />
+	</bean>
+
+	<bean id="FetNp412Processor" class="com.mitake.camel.fetnp.processor.FetNp412Processor">
+		<property name="fetNp412Service" ref="FetNp412Service" />
+	</bean>
+
+	<bean id="DeleteUploadProcessor" class="com.mitake.camel.fetnp.processor.DeleteProcessor" >
+		<property name="expiredDays" value="${fetnp.file.upload.backup.retention.day}" />
+		<property name="deletePath" value="${cdr.upload.file.dir}/backup" />
+	</bean>
+
+	<bean id="DeleteDownloadProcessor" class="com.mitake.camel.fetnp.processor.DeleteProcessor" >
+		<property name="expiredDays" value="${fetnp.file.download.backup.retention.day}" />
+		<property name="deletePath" value="${fetnp.file.download.dir}/backup" />
+	</bean>
+
+	<bean id="EmailNotifyProcessor" class="com.mitake.camel.fetnp.processor.EmailNotifyProcessor">
+		<property name="emailNotifyService" ref="EmailNotifyService"/>
+	</bean>
+
+</beans>
